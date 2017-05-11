@@ -1,0 +1,63 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Sockets;
+
+namespace TcpListener_sm_webserver
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //Initialize endpoint
+            IPAddress address = IPAddress.Loopback;
+            IPEndPoint endPoint = new IPEndPoint(address, 23333);
+            //Initialize the listener and start listening
+            TcpListener server = new TcpListener(endPoint);
+            server.Start();
+            Console.WriteLine("Start listening...\n");
+
+            while (true)
+            {
+                //accept request
+                TcpClient client = server.AcceptTcpClient();
+                Console.WriteLine("Create a connection.");
+                //get NetworkStream object
+                NetworkStream ns = client.GetStream();
+                //using utf8 converter
+                System.Text.Encoding utf8 =System.Text.Encoding.UTF8;
+                byte[] request = new byte[4096];
+                int length = ns.Read(request, 0, 4096);
+                string requestString = utf8.GetString(request, 0, length);
+                Console.WriteLine(requestString);
+
+                //Initialize status line
+                string statusLine = "HTTP/1.1 200 OK\r\n";
+                byte[] statusLineBytes = utf8.GetBytes(statusLine);
+
+                //Initialize response body
+                string responseBody = "<html><head><title>From Server</title></head><body><h1>Server Test [TcpListener]</h1></body></html>";
+                byte[] responseBodyBytes = utf8.GetBytes(responseBody);
+
+                //Initialize response head
+                string responseHeader = string.Format("Content-Type:text/html;charset=utf-8\r\nContent-Length:{0}\r\n", responseBody.Length);
+                byte[] responseHeaderBytes = utf8.GetBytes(responseHeader);
+
+                //return the information
+                ns.Write(statusLineBytes,0,statusLineBytes.Length);
+                ns.Write(responseHeaderBytes, 0, responseHeaderBytes.Length);
+                ns.Write(new byte[] { 13, 10 }, 0, 2);
+                ns.Write(responseBodyBytes, 0, responseBodyBytes.Length);
+
+                //close TcpClient
+                client.Close();
+                if (Console.KeyAvailable)
+                    break;
+            }
+            server.Stop();
+        }
+    }
+}
