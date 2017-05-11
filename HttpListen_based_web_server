@@ -1,0 +1,58 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net;
+namespace HttpListen_based_web_server
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //If system supported
+            if (!HttpListener.IsSupported)
+                throw new System.InvalidOperationException("Your system must be winXP or Server 2003 or later");
+            string[] prefixes = new string[] { "http://localhost:23333/" };
+
+            //Initialize HttpListener
+            HttpListener listener = new HttpListener();
+            foreach (string str in prefixes)
+                listener.Prefixes.Add(str);
+
+            //start listening
+            listener.Start();
+            Console.WriteLine("Start listening...\n");
+
+            while (true)
+            {
+                //waiting for request
+                HttpListenerContext context = listener.GetContext();
+                //receive request
+                HttpListenerRequest request = context.Request;
+                Console.WriteLine("{0} {1} HTTP/1.1",request.HttpMethod,request.RawUrl);
+                Console.WriteLine("Accept:{0}", string.Join(",", request.AcceptTypes));
+                Console.WriteLine("Accept-Encoding:{0}", request.Headers["Accept-Encoding"]);
+
+                //get response obj
+                HttpListenerResponse response = context.Response;
+                //Initialize response body
+                string responseString = @"<html><head><title>From HttpListener Server</title></head><body><h1>Server Test[HttpListener]</h1></html>";
+                //Initialize response content、length and encoding
+                response.ContentLength64 = System.Text.Encoding.UTF8.GetByteCount(responseString);
+                response.ContentType = "text/html;charset=UTF-8";
+                //output response content
+                System.IO.Stream output = response.OutputStream;
+                System.IO.StreamWriter writer = new System.IO.StreamWriter(output);
+                writer.Write(responseString);
+                //close the out Stream
+                writer.Close();
+                if (Console.KeyAvailable)
+                    break;
+            }
+            listener.Stop();
+
+        }
+
+    }
+}
